@@ -2,7 +2,18 @@ Ext.define('MBilling.view.dashboard.DashboardController', {
     extend: 'Ext.app.ViewController',
     alias: 'controller.dashboard',
     onHideView: function() {
-        //
+        this.stopDashboardPolling();
+    },
+    stopDashboardPolling: function() {
+        var me = this;
+        if (me.statusSystemInterval) {
+            clearInterval(me.statusSystemInterval);
+            me.statusSystemInterval = null;
+        }
+        if (me.trunkChartInterval) {
+            clearInterval(me.trunkChartInterval);
+            me.trunkChartInterval = null;
+        }
     },
     onRenderModule: function() {
         var me = this;
@@ -10,32 +21,54 @@ Ext.define('MBilling.view.dashboard.DashboardController', {
             storeStatusSystem = Ext.create('MBilling.store.StatusSystem');
             storeStatusSystem.load({
                 scope: me,
-                callback: function(record) {
-                    me.onUpdateDashboardNetWork(record)
+                callback: function(record, operation, success) {
+                    if (!success) {
+                        me.stopDashboardPolling();
+                        return;
+                    }
+                    if (record[0]) {
+                        me.onUpdateDashboardNetWork(record)
+                    }
                 }
             });
-            setInterval(function() {
+            me.statusSystemInterval = setInterval(function() {
                 storeStatusSystem.load({
                     scope: me,
-                    callback: function(record) {
-                        me.onUpdateDashboardNetWork(record)
+                    callback: function(record, operation, success) {
+                        if (!success) {
+                            me.stopDashboardPolling();
+                            return;
+                        }
+                        if (record[0]) {
+                            me.onUpdateDashboardNetWork(record)
+                        }
                     }
                 });
             }, 10000);
             storeTrunkChart = Ext.create('MBilling.store.TrunkChart');
             storeTrunkChart.load({
                 scope: me,
-                callback: function(record) {
+                callback: function(record, operation, success) {
+                    if (!success) {
+                        me.stopDashboardPolling();
+                        return;
+                    }
                     if (record[0]) {
                         me.onUpdateDashboardTrunk(record)
                     }
                 }
             });
-            setInterval(function() {
+            me.trunkChartInterval = setInterval(function() {
                 storeTrunkChart.load({
                     scope: me,
-                    callback: function(record) {
-                        me.onUpdateDashboardTrunk(record)
+                    callback: function(record, operation, success) {
+                        if (!success) {
+                            me.stopDashboardPolling();
+                            return;
+                        }
+                        if (record[0]) {
+                            me.onUpdateDashboardTrunk(record)
+                        }
                     }
                 });
             }, 30000);
