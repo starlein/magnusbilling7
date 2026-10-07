@@ -2050,6 +2050,22 @@ class BaseController extends CController
 
     public function extraFilterCustomClient($filter)
     {
+        if (! $this->filterByUser) {
+            return $filter;
+        }
+
+        // Never build a tenant filter for global tables. A stale admin tab
+        // can keep polling after the shared session changes to a client.
+        if (! $this->abstractModel->hasAttribute('id_user')) {
+            header('HTTP/1.1 403 Forbidden');
+            echo json_encode([
+                $this->nameRoot      => [],
+                $this->nameCount     => 0,
+                $this->nameSum       => [],
+                $this->nameMsgErrors => 'Access denied',
+            ]);
+            Yii::app()->end();
+        }
 
         //se for cliente filtrar pelo pkg_user.id
         $filter .= ' AND t.id_user = :clfby';
